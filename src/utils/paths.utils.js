@@ -2,7 +2,7 @@ const lodashFP = require('lodash/fp');
 const fs = require('fs');
 const { join } = require('path');
 
-export const getPathDirNames = (path) => {
+const getPathDirNames = (path) => {
   return fs
     .readdirSync(path)
     .filter(file => 
@@ -14,7 +14,7 @@ export const getPathDirNames = (path) => {
     }));
 }
 
-export const getAliasPathsFromConfigs = (configs) => {
+const getAliasPathsFromConfigs = (configs) => {
   return lodashFP.flow([
     lodashFP.map(config => {
       return lodashFP.map.convert({ cap: false })((path, alias) => {
@@ -31,7 +31,7 @@ export const getAliasPathsFromConfigs = (configs) => {
   ])(configs);
 }
 
-export const getModulesPathsFromConfigs = (configs) => {
+const getModulesPathsFromConfigs = (configs) => {
   return lodashFP.flow([
     lodashFP.map(config => {
       return lodashFP.map(module => {
@@ -48,7 +48,7 @@ export const getModulesPathsFromConfigs = (configs) => {
   ])(configs);
 }
 
-export const getPathsFromConfigs = (configs) => {
+const getPathsFromConfigs = (configs) => {
   const aliasPaths = getAliasPathsFromConfigs(configs);
   const modulesPaths = getModulesPathsFromConfigs(configs);
   const modulesPathAndAlias = lodashFP.flatten(modulesPaths.map(getPathDirNames));
@@ -63,3 +63,7 @@ export const getPathsFromConfigs = (configs) => {
 
   return paths;
 }
+
+module.exports = {
+  getPathsFromConfigs
+};

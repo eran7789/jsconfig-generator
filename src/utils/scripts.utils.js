@@ -3,11 +3,11 @@ const lodashFP = require('lodash/fp');
 
 const CONFIG_FLAG = '--config';
 
-export const getWebpackScripts = (scripts) => {
+const getWebpackScripts = (scripts) => {
   return lodashFP.filter(script => script.includes('webpack'), scripts);
 }
 
-export const getConfigsFromScripts = (scripts) => {
+const getConfigsFromScripts = (scripts) => {
   return lodashFP.flow([
     lodashFP.map(script => {
       if (!script.includes(CONFIG_FLAG)) {
@@ -27,3 +27,7 @@ export const getConfigsFromScripts = (scripts) => {
   ])(scripts);
 }
 
+module.exports = {
+  getWebpackScripts,
+  getConfigsFromScripts
+};
