@@ -1,5 +1,7 @@
 const vscode = require('vscode');
 const { join } = require('path');
+const fs = require('fs');
+const { set, merge, getOr } = require('lodash/fp');
 
 const { 
   getWebpackScripts, 
@@ -26,29 +28,46 @@ function activate(context) {
     const webpackScripts = getWebpackScripts(packageJson.scripts);
     const configs = getConfigsFromScripts(webpackScripts);
     const paths = getPathsFromConfigs(configs);
-    const jsconfig = {
-      compilerOptions: {
-        baseUrl: '.',
-        paths
-      }
-    };
+    const jsConfigPath = join(vscode.workspace.workspaceFolders[0].uri.path, 'jsconfig.json');
+    let jsConfig = {};
 
-    vscode.workspace.openTextDocument({ 
-      content: JSON.stringify(jsconfig, null, 2), 
-      language: 'json' 
-    })
-    .then(doc => {
-      if (!doc) {
-        vscode.window.showErrorMessage('Could not create new document');
-      }
+    try {
+      if (fs.existsSync(jsConfigPath)) {
+        const configPaths = getOr({}, 'compilerOptions.paths', jsConfig);
+        
+        jsConfig = require(jsConfigPath);
+        
+        const mergedPaths = merge(paths, configPaths);
+        
+        jsConfig = set(
+          'compilerOptions.paths', 
+          mergedPaths,
+          jsConfig
+        );
+      } else {
+        jsConfig = {
+          compilerOptions: {
+            baseUrl: '.',
+            target: 'es6',
+            paths
+          },
+          exclude: [
+            'node_modules'
+          ]
+        }
+      };
 
-      vscode.window.showTextDocument(doc);
-      vscode.window.showInformationMessage('Jsconfig proposal is ready in!');
-    });
-	});
+      fs.writeFileSync(jsConfigPath, JSON.stringify(jsConfig, null, 2));
+    } catch (error) {
+      console.log(error);
 
-	context.subscriptions.push(disposable);
-}
+      vscode.window.showErrorMessage('Could not write file :(');
+    }
+
+  	context.subscriptions.push(disposable);
+  });
+};
+
 exports.activate = activate;
 
 // this method is called when your extension is deactivated
