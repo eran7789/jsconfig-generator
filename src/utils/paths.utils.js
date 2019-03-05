@@ -1,6 +1,9 @@
+const vscode = require('vscode');
 const lodashFP = require('lodash/fp');
 const fs = require('fs');
 const { join } = require('path');
+
+const uniqAlias = alias => alias.alias;
 
 const getPathDirNames = (path) => {
   return fs
@@ -26,7 +29,7 @@ const getAliasPathsFromConfigs = (configs) => {
       }, config.resolve.alias)
     }),
     lodashFP.flatten,
-    lodashFP.uniqBy(alias => alias.alias),
+    lodashFP.uniqBy(uniqAlias),
     lodashFP.compact
   ])(configs);
 }
@@ -48,18 +51,30 @@ const getModulesPathsFromConfigs = (configs) => {
   ])(configs);
 }
 
+const getSrcPaths = () => {
+  const srcPath = join(vscode.workspace.workspaceFolders[0].uri.path, 'src');
+  let pathsAndAliases = [];
+
+  if (fs.existsSync(srcPath)) {
+    pathsAndAliases = getPathDirNames(srcPath)
+  }
+
+  return pathsAndAliases;
+}
+
 const getPathsFromConfigs = (configs) => {
   const aliasPaths = getAliasPathsFromConfigs(configs);
   const modulesPaths = getModulesPathsFromConfigs(configs);
   const modulesPathAndAlias = lodashFP.flatten(modulesPaths.map(getPathDirNames));
+  const srcPathAndAliases = getSrcPaths();
+
   let paths = {};
 
-  lodashFP.forEach(alias => {
-    paths = lodashFP.set([alias.alias], alias.path, paths);
-  }, aliasPaths);
-  lodashFP.forEach(alias => {
-    paths = lodashFP.set([alias.alias], alias.path, paths);
-  }, modulesPathAndAlias);
+  lodashFP.flow([
+    lodashFP.map(alias => {
+      paths = lodashFP.set([alias.alias], alias.path, paths);
+    })
+  ])(lodashFP.uniqBy(uniqAlias, [...modulesPathAndAlias, ...aliasPaths, ...srcPathAndAliases]));
 
   return paths;
 }
