@@ -2,7 +2,7 @@
 	"name": "jsconfig-generator",
 	"displayName": "jsconfig-generator",
 	"description": "generates jsconfig file to enable absolute imports for webpacck based projects",
-	"version": "0.0.7",
+	"version": "0.0.8",
 	"publisher": "eran-keren",
 	"repository": "https://github.com/eran7789/jsconfig-generator",
 	"engines": {
