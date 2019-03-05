@@ -72,7 +72,7 @@ const getPathsFromConfigs = (configs) => {
 
   lodashFP.flow([
     lodashFP.map(alias => {
-      paths = lodashFP.set([alias.alias], alias.path, paths);
+      paths = lodashFP.set([`${alias.alias}/*`], [`${alias.path}/*`], paths);
     })
   ])(lodashFP.uniqBy(uniqAlias, [...modulesPathAndAlias, ...aliasPaths, ...srcPathAndAliases]));
 
