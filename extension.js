@@ -48,7 +48,6 @@ function activate(context) {
         jsConfig = {
           compilerOptions: {
             baseUrl: '.',
-            target: 'es6',
             paths
           },
           exclude: [
@@ -58,6 +57,14 @@ function activate(context) {
       };
 
       fs.writeFileSync(jsConfigPath, JSON.stringify(jsConfig, null, 2));
+      vscode.workspace.openTextDocument(jsConfigPath)
+       .then(doc => {
+         if (!doc) {
+          vscode.window.showErrorMessage('Could not open jsconfig.json, Please open manually');
+         }
+
+         vscode.window.showTextDocument(doc)
+       });
     } catch (error) {
       console.log(error);
 
