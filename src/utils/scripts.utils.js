@@ -1,3 +1,4 @@
+const vscode = require('vscode');
 const lodashFP = require('lodash/fp');
 
 const CONFIG_FLAG = '--config';
