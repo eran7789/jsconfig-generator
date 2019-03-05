@@ -1,4 +1,6 @@
 const vscode = require('vscode');
+const { join } = require('path');
+
 const { 
   getWebpackScripts, 
   getConfigsFromScripts 
@@ -12,7 +14,8 @@ const {
  */
 function activate(context) {
 	let disposable = vscode.commands.registerCommand('jsconfig.generate', function () {
-    const packageJson = require(`${vscode.workspace.workspaceFolders[0].uri.path}/package.json`);
+    const packageJsonPath = join(vscode.workspace.workspaceFolders[0].uri.path, 'package.json');
+    const packageJson = require(packageJsonPath);
 
     if (!packageJson) {
       console.log('No package.json found in root folder!');
