@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const { join } = require('path');
 const fs = require('fs');
-const { set, merge, getOr } = require('lodash/fp');
+const { set, merge, getOr, flow } = require('lodash/fp');
 
 const { 
   getWebpackScripts, 
@@ -25,9 +25,11 @@ function activate(context) {
       return;
     }
 
-    const webpackScripts = getWebpackScripts(packageJson.scripts);
-    const configs = getConfigsFromScripts(webpackScripts);
-    const paths = getPathsFromConfigs(configs);
+    const paths = flow([
+      getWebpackScripts,
+      getConfigsFromScripts,
+      getPathsFromConfigs
+    ])(packageJson.scripts);
     const jsConfigPath = join(vscode.workspace.workspaceFolders[0].uri.path, 'jsconfig.json');
     let jsConfig = {};
 
