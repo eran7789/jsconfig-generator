@@ -26,7 +26,7 @@ const getAliasPathsFromConfigs = (configs) => {
         }
 
         return { alias, path };
-      }, config.resolve.alias)
+      }, lodashFP.get('resolve.alias', config))
     }),
     lodashFP.flatten,
     lodashFP.uniqBy(uniqAlias),
@@ -43,7 +43,7 @@ const getModulesPathsFromConfigs = (configs) => {
         }
 
         return module;
-      }, config.resolve.modules)
+      }, lodashFP.get('resolve.modules', config))
     }),
     lodashFP.flatten,
     lodashFP.uniq,
