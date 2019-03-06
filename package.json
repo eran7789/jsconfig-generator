@@ -19,7 +19,7 @@
 		"commands": [
 			{
 				"command": "jsconfig.generate",
-				"title": "Genarate jsconfig"
+				"title": "Genarate jsconfig.json"
 			}
 		]
 	},
