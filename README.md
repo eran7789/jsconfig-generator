@@ -10,4 +10,4 @@ Genarate jsconfig.json - Will read your webpack definitions and build a jsconfig
 
 ## Example
 
-![demo](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png "jsconfig generator demo")
+![demo](https://github.com/eran7789/jsconfig-generator/blob/master/images/jsconfig-demo.gif "jsconfig generator demo")
