@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const lodashFP = require('lodash/fp');
+const { join } = require('path');
 
 const CONFIG_FLAG = '--config';
 
@@ -12,7 +13,7 @@ const getConfigsFromScripts = (scripts) => {
     return lodashFP.flow([
       lodashFP.map(script => {
         if (!script.includes(CONFIG_FLAG)) {
-          return require('webpack.config.js');
+          return require(join(vscode.workspace.workspaceFolders[0].uri.path, 'webpack.config.js'));
         }
 
         const startIndex = script.lastIndexOf(CONFIG_FLAG);
