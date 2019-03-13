@@ -1,82 +1,131 @@
 const vscode = require('vscode');
-const lodashFP = require('lodash/fp');
 const fs = require('fs');
+const { flow, map, flatten, uniqBy, compact, get, uniq, set } = require('lodash/fp');
 const { join } = require('path');
 
 const uniqAlias = alias => alias.alias;
 
-const getPathDirNames = (path) => {
-  return fs
-    .readdirSync(path)
-    .filter(file => 
+const getPathDirNames = (path, callback) => {
+  fs.readdir(path, (error, files) => {
+    if (error) {
+      callback(error);
+
+      return;
+    }
+
+    const dirNames = files.filter(file => 
       fs.statSync(join(path, file)).isDirectory()
     )
     .map(dir => ({
       path: join(path, dir),
       alias: dir
     }));
+
+    callback(error, dirNames);
+  });
 }
 
 const getAliasPathsFromConfigs = (configs) => {
-  return lodashFP.flow([
-    lodashFP.map(config => {
-      return lodashFP.map.convert({ cap: false })((path, alias) => {
+  return flow([
+    map(config => {
+      return map.convert({ cap: false })((path, alias) => {
         if (path === 'node_modules') {
           return null;
         }
 
         return { alias, path };
-      }, lodashFP.get('resolve.alias', config))
+      }, get('resolve.alias', config))
     }),
-    lodashFP.flatten,
-    lodashFP.uniqBy(uniqAlias),
-    lodashFP.compact
+    flatten,
+    uniqBy(uniqAlias),
+    compact
   ])(configs);
 }
 
 const getModulesPathsFromConfigs = (configs) => {
-  return lodashFP.flow([
-    lodashFP.map(config => {
-      return lodashFP.map(module => {
+  return flow([
+    map(config => {
+      return map(module => {
         if (module === 'node_modules') {
           return null;
         }
 
         return module;
-      }, lodashFP.get('resolve.modules', config))
+      }, get('resolve.modules', config))
     }),
-    lodashFP.flatten,
-    lodashFP.uniq,
-    lodashFP.compact
+    flatten,
+    uniq,
+    compact
   ])(configs);
 }
 
-const getSrcPaths = () => {
-  const srcPath = join(vscode.workspace.workspaceFolders[0].uri.path, 'src');
-  let pathsAndAliases = [];
+const getSrcPaths = (callback) => {
+  const srcPath = join(vscode.workspace.workspaceFolders[0].uri.path, 'src')
 
   if (fs.existsSync(srcPath)) {
-    pathsAndAliases = getPathDirNames(srcPath)
+    getPathDirNames(srcPath, (error, pathsAndAliases) => {
+      callback(error, pathsAndAliases);
+    });
+
+    return;
   }
 
-  return pathsAndAliases;
+  callback(null, []);
 }
 
-const getPathsFromConfigs = (configs) => {
+const isArrAllTrue = (arr) => compact(arr).length === arr.length;
+
+const getModulesPathsAndAliases = (modulesPaths, callback) => {
+  let modulesPathAndAlias = [];
+  let successArr = modulesPaths.map(() => false);
+
+  modulesPaths.forEach((modulePath, index) => {
+    getPathDirNames(modulePath, (error, dirNames) => {
+      if (error) {
+        callback(error);
+
+        return;
+      }
+  
+      modulesPathAndAlias = [...modulesPathAndAlias, ...dirNames];
+      successArr[index] = true;
+      
+      if (isArrAllTrue(successArr)) {
+        callback(error, modulesPathAndAlias);
+      }
+    });
+  });
+}
+
+const getPathsFromConfigs = (configs, callback) => {
   const aliasPaths = getAliasPathsFromConfigs(configs);
   const modulesPaths = getModulesPathsFromConfigs(configs);
-  const modulesPathAndAlias = lodashFP.flatten(modulesPaths.map(getPathDirNames));
-  const srcPathAndAliases = getSrcPaths();
 
-  let paths = {};
+  getModulesPathsAndAliases(modulesPaths, (error, modulesPathAndAlias) => {
+    if (error) {
+      callback(error);
 
-  lodashFP.flow([
-    lodashFP.map(alias => {
-      paths = lodashFP.set([`${alias.alias}/*`], [`${alias.path}/*`], paths);
-    })
-  ])(lodashFP.uniqBy(uniqAlias, [...modulesPathAndAlias, ...aliasPaths, ...srcPathAndAliases]));
+      return;
+    }
 
-  return paths;
+    getSrcPaths((error, srcPathAndAliases) => {
+      if (error) {
+        callback(error);
+
+        return;
+      }
+
+      let paths = {};
+
+      flow([
+        map(alias => {
+          paths = set([`${alias.alias}/*`], [`${alias.path}/*`], paths);
+        })
+      ])(uniqBy(uniqAlias, [...modulesPathAndAlias, ...aliasPaths, ...srcPathAndAliases]));
+
+      callback(error, paths);
+    });
+  });
 }
 
 module.exports = {

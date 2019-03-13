@@ -1,6 +1,6 @@
 const vscode = require('vscode');
-const { join } = require('path');
 const fs = require('fs');
+const { join } = require('path');
 const { set, merge, getOr, flow } = require('lodash/fp');
 
 const { 
@@ -25,53 +25,67 @@ function activate(context) {
       return;
     }
 
-    const paths = flow([
+    flow([
       getWebpackScripts,
       getConfigsFromScripts,
-      getPathsFromConfigs
+      (configs) => {
+        getPathsFromConfigs(configs, (error, paths) => {
+          if (error) {
+            console.log(error);
+            vscode.window.showErrorMessage('Failed reading configurations :(');
+
+            return;
+          }
+
+          const jsConfigPath = join(vscode.workspace.workspaceFolders[0].uri.path, 'jsconfig.json');
+          let jsConfig = {};
+
+          fs.readFile(jsConfigPath, (error, data) => {
+            if (error) {
+              jsConfig = {
+                compilerOptions: {
+                  baseUrl: '.',
+                  paths
+                },
+                exclude: [
+                  'node_modules'
+                ]
+              }
+            } else {
+              const configPaths = getOr({}, 'compilerOptions.paths', jsConfig);
+            
+              jsConfig = JSON.parse(data);
+              
+              const mergedPaths = merge(paths, configPaths);
+              
+              jsConfig = set(
+                'compilerOptions.paths', 
+                mergedPaths,
+                jsConfig
+              );
+            }
+
+            fs.writeFile(jsConfigPath, JSON.stringify(jsConfig, null, 2), (error) => {
+              if (error) {
+                console.log(error);
+                vscode.window.showErrorMessage('Could not write file :(');
+
+                return;
+              }
+
+              vscode.workspace.openTextDocument(jsConfigPath)
+                .then(doc => {
+                  if (!doc) {
+                    vscode.window.showErrorMessage('Could not open jsconfig.json, Please open manually');
+                  }
+
+                  vscode.window.showTextDocument(doc)
+                });
+            });
+          });
+        });
+      }
     ])(packageJson.scripts);
-    const jsConfigPath = join(vscode.workspace.workspaceFolders[0].uri.path, 'jsconfig.json');
-    let jsConfig = {};
-
-    try {
-      if (fs.existsSync(jsConfigPath)) {
-        const configPaths = getOr({}, 'compilerOptions.paths', jsConfig);
-        
-        jsConfig = require(jsConfigPath);
-        
-        const mergedPaths = merge(paths, configPaths);
-        
-        jsConfig = set(
-          'compilerOptions.paths', 
-          mergedPaths,
-          jsConfig
-        );
-      } else {
-        jsConfig = {
-          compilerOptions: {
-            baseUrl: '.',
-            paths
-          },
-          exclude: [
-            'node_modules'
-          ]
-        }
-      };
-
-      fs.writeFileSync(jsConfigPath, JSON.stringify(jsConfig, null, 2));
-      vscode.workspace.openTextDocument(jsConfigPath)
-       .then(doc => {
-         if (!doc) {
-          vscode.window.showErrorMessage('Could not open jsconfig.json, Please open manually');
-         }
-
-         vscode.window.showTextDocument(doc)
-       });
-    } catch (error) {
-      console.log(error);
-
-      vscode.window.showErrorMessage('Could not write file :(');
-    }
 
   	context.subscriptions.push(disposable);
   });
